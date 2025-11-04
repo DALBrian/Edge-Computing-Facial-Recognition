@@ -128,6 +128,7 @@ void printInfo(void) {
 String SendImageMQTT() {
   int buf = 8192;
   Camera.getImage(1, &img_addr, &img_len);
+  printf("Img_len: %i \n", img_len);
   //int ps = 512;
   //開始傳遞影像檔，批次傳檔案
   MQTTClient.beginPublish(MQTTPubTopic1, img_len, false);

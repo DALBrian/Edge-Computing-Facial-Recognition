@@ -37,8 +37,8 @@ WiFiUDP ntpUDP;
 // Network time server setting
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 28800, 60000);
 // Video stream setting
-VideoSetting configMQTT(WIDTH, HEIGHT, 1, VIDEO_JPEG, 0); //VIDEO_JPEG for MQTT/
-VideoSetting configNN(NNWIDTH, NNHEIGHT, 1, VIDEO_RGB, 0); //Neural Network
+VideoSetting configMQTT(WIDTH, HEIGHT, 10, VIDEO_JPEG, 1); //VIDEO_JPEG for MQTT, VIDEO_H264 for streaming test; snapshop = 1 to enable getImage()
+VideoSetting configNN(NNWIDTH, NNHEIGHT, 10, VIDEO_RGB, 0); //Neural Network
 StreamIO videoStreamer(1, 1);
 StreamIO videoStreamerRGBFD(1,1);
 RTSP rtsp;
@@ -49,8 +49,8 @@ char* MQTTUser = "";
 char* MQTTPassword = "";
 char* MQTTImgTopic = "Door1/img";
 char* MQTTIdTopic = "Door1/id";
-char* MQTTTimeTopic = "Door1/time";
 char* MQTTNameTopic = "Door1/name";
+char* MQTTTimeTopic = "Door1/time";
 // MQTT update rate
 long MQTTLastPublishTime;
 long MQTTPublishInterval = 1000;   
@@ -58,7 +58,6 @@ PubSubClient MQTTClient(WifiClient);
 // Face recognition setting
 NNFaceDetectionRecognition facerecog;
 // Others Setting
-int PicID = 0;
 uint32_t img_addr = 0;
 uint32_t img_len = 0;
 size_t unknown_times = 0;
@@ -77,11 +76,10 @@ void setup() {
   // Configure RTSP server
   rtsp.configVideo(configMQTT);
   rtsp.begin();
-  Serial.println("Video streaming started!");
-  Camera.channelBegin(CHANNEL);
   videoStreamer.registerInput(Camera.getStream(CHANNEL));
-    videoStreamer.registerOutput(rtsp);
-    if (videoStreamer.begin() != 0) Serial.println("StreamIO link start failed");
+  videoStreamer.registerOutput(rtsp);
+  if (videoStreamer.begin() != 0) Serial.println("StreamIO link start failed");
+  delay(1000);
   // Configure face recognization
   facerecog.configVideo(configNN);
   facerecog.modelSelect(FACE_RECOGNITION, NA_MODEL, DEFAULT_SCRFD, DEFAULT_MOBILEFACENET);
@@ -93,12 +91,12 @@ void setup() {
   videoStreamerRGBFD.setTaskPriority();
   videoStreamerRGBFD.registerOutput(facerecog);
   if (videoStreamerRGBFD.begin() != 0) Serial.println("StreamIO link start failed");
+  Camera.channelBegin(CHANNEL);
   Camera.channelBegin(CHANNELNN);
   // Start Over-screen Display(OSD)
   OSD.configVideo(CHANNEL, configMQTT);
   OSD.begin();
   // Print out all information for debugging
-  delay(500);
   printInfo();
 }
 void loop() {
@@ -144,8 +142,8 @@ void SendImageMQTT(){
   // Serial.println("Transmitting image to MQTT broker");
   // Initialization
   int buf = 8192; //Transmition size every time
-  Camera.getImage(0, &img_addr, &img_len);
-  
+  Camera.getImage(CHANNEL, &img_addr, &img_len);
+  printf("img_len: %i \n", img_len);
   if (img_len > 0){
     MQTTClient.beginPublish(MQTTImgTopic, img_len, false);
     uint8_t* fbBuf = (uint8_t*) img_addr;
@@ -169,10 +167,15 @@ void SendImageMQTT(){
     Serial.println(img_len);
   }
 }
-void SendTextMQTT(const char *name){
-  printf("The send const char is: %s \n", name);
-  if(!MQTTClient.publish(MQTTNameTopic, name)) Serial.println("MQTT text publish fail.");
-  else Serial.println("MQTT text publish successful.");
+void SendTextMQTT(const char *id, const char *name, const char *timestamp){
+  // if(!MQTTClient.publish(MQTTIdTopic, id) && !MQTTClient.publish(MQTTNameTopic, name) && !MQTTClient.publish(MQTTTimeTopic, timestamp)){
+  //   Serial.println("MQTT text publish fail.");
+  // }
+  // else Serial.println("MQTT text publish successful.");
+  MQTTClient.publish(MQTTIdTopic, id);
+  MQTTClient.publish(MQTTNameTopic, name);
+  MQTTClient.publish(MQTTTimeTopic, timestamp);
+  Serial.println("Text sended.");
 }
 
 /*  NN modle callback */
@@ -180,7 +183,6 @@ void facerecog_callback(std::vector<FaceRecognitionResult> results){
   uint16_t image_width = configMQTT.width();
   uint16_t image_height = configMQTT.height();
   uint16_t result_count = facerecog.getResultCount();
-  printf("Total number of faces detected = %d\r\n", result_count);
   OSD.createBitmap(CHANNEL);
   if (result_count > 0){
     for (size_t i = 0; i < (int) result_count; i++){
@@ -191,6 +193,7 @@ void facerecog_callback(std::vector<FaceRecognitionResult> results){
       int ymax = (int)(obj.yMax() * image_height);
 
       uint32_t osd_color;
+      printf("The name is: %s \n", obj.name());
       if (String(obj.name()) == String("unknown")){
         osd_color = OSD_COLOR_RED;
         unknown_times += 1;
@@ -198,9 +201,12 @@ void facerecog_callback(std::vector<FaceRecognitionResult> results){
         osd_color = OSD_COLOR_GREEN;
         unknown_times = 0;
       }
-      if (unknown_times % 1000 == 1) SendImageMQTT();
-      printf("Face %d name: %s.\n", i, obj.name());
-      SendTextMQTT(obj.name());
+      printf("Unknown times: %i \n", unknown_times);
+      if (unknown_times % 5 == 1) {
+        SendImageMQTT();
+        String id = "1";
+        SendTextMQTT(id.c_str(), obj.name(), get_datetime().c_str());
+      }
       OSD.drawRect(CHANNEL, xmin, ymin, xmax, ymax, 3, osd_color);
       char name[64];
       char unknown_times_[64];
@@ -240,11 +246,11 @@ String get_datetime(){
   int currentYear = ptm->tm_year+1900;
   int currentMonth = ptm->tm_mon+1;
   int monthDay = ptm->tm_mday;
-  String Datetime = String(currentYear) + "-" + String(currentMonth) + "-" + String(monthDay) +
-  " "+ String(currentHour) + " " + String(currentMinute) + " " + String(currentSecond);
+  String datetime = String(currentYear) + "-" + String(currentMonth) + "-" + String(monthDay) +
+  "_"+ String(currentHour) + ":" + String(currentMinute) + ":" + String(currentSecond);
   Serial.print("Current datetime: ");
-  Serial.println(Datetime);
-  return Datetime;
+  Serial.println(datetime);
+  return datetime;
 }
 
 /* Print essential information */
@@ -260,4 +266,5 @@ void printInfo() {
   Serial.print(":");
   Serial.println(rtsp.getPort());
   Serial.println("------------------------------");
+  delay(2000);
 }
