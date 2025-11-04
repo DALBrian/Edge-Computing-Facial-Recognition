@@ -61,7 +61,7 @@ Edge-Computing-Facial-Recognition/
 4. `python3 manage.py runserver 0.0.0.0:8000`
 5. Use web browser to connect to 0.0.0.0:8000
 6. Choose "Add user" to add user and their image.
-7. 
+
 
 # Result
 ## Embedded
