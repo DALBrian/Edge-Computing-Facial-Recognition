@@ -58,5 +58,32 @@ Edge-Computing-Facial-Recognition/
 3. `cd web`
 4. `python3 manage.py runserver 0.0.0.0:8000`
 5. Use web browser to connect to 0.0.0.0:8000
+6. Choose "Add user" to add user and their image.
+7. 
 
-## Result
+# Result
+## Embedded
+1. You can use VLC media player to watch video streaming for debugging.
+2. VLC -> Media (Left-top corner) -> Network -> `rtsp://<DEVICE_IP>:554` 
+![Demo](images/Demo-1.png)
+
+## Web
+1. Use web browser to view
+![home page](<images/home page.png>)
+2. User histroy will be shown in "History" page
+![history view](<images/history view.png>)
+
+# Troubleshooting
+## Embedded
+1. Cannot connect to WiFi -> AMB82 only support 2.4 Ghz, check your WiFi SSID and password in `firmware/access_control/access_control.ino`
+2. VLC cannot stream video -> Check your computer's firewall setting and rtsp port config.
+
+## Web
+1. Cannot open in web browser -> Check your firewall setting and WSL port forwarding.
+
+# TODO
+1. Make website prettier
+2. Add administrator and visitor control to web.
+3. Measure MQTT latency.
+4. Report device status and last online time.
+5. Automatically recover data when WiFi disconnect using EEPROM.
