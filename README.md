@@ -67,12 +67,16 @@ Edge-Computing-Facial-Recognition/
 ## Embedded
 1. You can use VLC media player to watch video streaming for debugging.
 2. VLC -> Media (Left-top corner) -> Network -> `rtsp://<DEVICE_IP>:554` 
+
 ![Demo](images/Demo-1.png)
 
 ## Web
 1. Use web browser to view
+
 ![home page](<images/home page.png>)
+
 2. User histroy will be shown in "History" page
+
 ![history view](<images/history view.png>)
 
 # Troubleshooting
