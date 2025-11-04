@@ -22,6 +22,7 @@ flowchart LR
 ```
 
 # Structure
+```text
 Edge-Computing-Facial-Recognition/
 ├─ firmware/
 │  └─ access_control/ 
@@ -42,6 +43,7 @@ Edge-Computing-Facial-Recognition/
 │  |─ dependency.md
 |  └─ form_template.md
 └─ README.md  
+```
 
 # Startup
 ## Embedded (AMB82)
