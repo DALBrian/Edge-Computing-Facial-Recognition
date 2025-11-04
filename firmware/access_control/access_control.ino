@@ -9,13 +9,12 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <time.h>
-/*
+/**
 @author: Small Brian
-@date: 20230110
+@date: 20240110
 @brief: Use RTSP streaming to view camera live stream remotely. Use NN model for face recognization and upload id/name/image/timestamp to MQTT
 @hardware: Realtek AMB82-mini
 @version: 1.2
-@prev_version mqtt_test5 v 1.1
 @add: Network Time Protocol for timestamp.
 @todo: Fine tuning on MQTT transmition rate.
 @note: AMB82 v4.0.5 board manager doesn't come with NTPClient, manually added to library from previous version.
@@ -99,6 +98,7 @@ void setup() {
   // Print out all information for debugging
   printInfo();
 }
+
 void loop() {
   // put your main code here, to run repeatedly:
   if (WiFi.status() != WL_CONNECTED) WiFiConnect();
@@ -122,6 +122,7 @@ void WiFiConnect(){
     Serial.print(".");
   }
 }
+
 void MQTTConnect(){
   Serial.println("Connecting to MQTT server.");
   MQTTClient.setServer(MQTTServer, MQTTPort);
@@ -167,11 +168,8 @@ void SendImageMQTT(){
     Serial.println(img_len);
   }
 }
+
 void SendTextMQTT(const char *id, const char *name, const char *timestamp){
-  // if(!MQTTClient.publish(MQTTIdTopic, id) && !MQTTClient.publish(MQTTNameTopic, name) && !MQTTClient.publish(MQTTTimeTopic, timestamp)){
-  //   Serial.println("MQTT text publish fail.");
-  // }
-  // else Serial.println("MQTT text publish successful.");
   MQTTClient.publish(MQTTIdTopic, id);
   MQTTClient.publish(MQTTNameTopic, name);
   MQTTClient.publish(MQTTTimeTopic, timestamp);
